@@ -1,0 +1,59 @@
+cmake_minimum_required(VERSION 3.22.1)
+project("trafficsign")
+
+#add_library(native-lib SHARED
+#        native-lib.cpp
+#        yolo_ncnn.cpp)
+
+# ncnn headers
+target_include_directories(native-lib PRIVATE
+#        ${CMAKE_SOURCE_DIR}/ncnn/include/ncnn
+        ${CMAKE_SOURCE_DIR}/ncnn/arm64-v8a/include/ncnn
+
+)
+
+# ✅ 导入静态库 libncnn.a
+add_library(ncnn STATIC IMPORTED)
+set_target_properties(ncnn PROPERTIES
+        IMPORTED_LOCATION
+        ${CMAKE_SOURCE_DIR}/ncnn/${ANDROID_ABI}/lib/libncnn.a
+)
+
+find_library(log-lib log)
+find_library(android-lib android)
+
+# ---- OpenMP runtime (libomp) for Android/Clang ----
+add_library(omp SHARED IMPORTED)
+
+# ---- OpenMP runtime (libomp) auto-detect ----
+#file(GLOB OMP_CANDIDATES
+#        "${ANDROID_NDK}/toolchains/llvm/prebuilt/windows-x86_64/lib64/clang/*/lib/linux/aarch64/libomp.so"
+#        "${ANDROID_NDK}/toolchains/llvm/prebuilt/windows-x86_64/lib64/clang/*/lib/linux/aarch64/libomp.a"
+#)
+
+if(OMP_CANDIDATES)
+    list(GET OMP_CANDIDATES 0 OMP_LIB)
+    message(STATUS "Found OpenMP runtime: ${OMP_LIB}")
+
+    # 如果找到的是 .a 就按 STATIC，否则按 SHARED
+    if(OMP_LIB MATCHES ".*\\.a$")
+        add_library(omp STATIC IMPORTED)
+    else()
+        add_library(omp SHARED IMPORTED)
+    endif()
+
+    set_target_properties(omp PROPERTIES IMPORTED_LOCATION ${OMP_LIB})
+#else()
+#    message(FATAL_ERROR "OpenMP runtime (libomp) not found in NDK. Please install/locate libomp or use ncnn build without OpenMP.")
+endif()
+
+set_target_properties(omp PROPERTIES IMPORTED_LOCATION ${OMP_LIB})
+
+target_link_libraries(native-lib
+        ncnn
+        omp
+        ${log-lib}
+        ${android-lib}
+        atomic
+        m
+)

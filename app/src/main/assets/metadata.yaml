@@ -1,0 +1,61 @@
+description: Ultralytics YOLOv8n-myChange4Nohead model trained on /s2023212450/yolov12/ultralytics/cfg/datasets/TT100KFinal2.yaml
+author: Ultralytics
+date: '2026-02-07T10:13:30.151923'
+version: 8.3.63
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: detect
+batch: 1
+imgsz:
+- 640
+- 640
+names:
+  0: pl20
+  1: pm30
+  2: pg
+  3: pl100
+  4: ph4
+  5: pl30
+  6: p10
+  7: pl120
+  8: i2
+  9: pm20
+  10: pl70
+  11: il60
+  12: ph5
+  13: w13
+  14: i4l
+  15: pm55
+  16: p12
+  17: pl80
+  18: pr40
+  19: ph4.5
+  20: p19
+  21: w32
+  22: pl60
+  23: p27
+  24: p23
+  25: p11
+  26: p5
+  27: w57
+  28: i2r
+  29: i5
+  30: pl5
+  31: pl50
+  32: ip
+  33: p13
+  34: w55
+  35: pn
+  36: pl40
+  37: p3
+  38: pne
+  39: i4
+  40: w59
+  41: p26
+  42: p6
+  43: il100
+  44: il80
+args:
+  batch: 1
+  half: false
