@@ -1,57 +1,217 @@
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <LinearLayout
-        android:orientation="vertical"
-        android:padding="16dp"
+    <!-- 顶部栏 -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        app:title="设置"
+        app:titleCentered="true" />
 
-        <EditText android:id="@+id/edConf" android:hint="conf threshold (e.g. 0.25)"
-            android:inputType="numberDecimal"
-            android:layout_width="match_parent" android:layout_height="wrap_content"/>
-
-        <EditText android:id="@+id/edNms" android:hint="nms threshold (e.g. 0.45)"
-            android:inputType="numberDecimal"
-            android:layout_width="match_parent" android:layout_height="wrap_content"/>
-
-        <EditText android:id="@+id/edInput" android:hint="input size (e.g. 640)"
-            android:inputType="number"
-            android:layout_width="match_parent" android:layout_height="wrap_content"/>
-
-        <EditText android:id="@+id/edThreads" android:hint="threads (e.g. 4)"
-            android:inputType="number"
-            android:layout_width="match_parent" android:layout_height="wrap_content"/>
-
-        <Switch
-            android:id="@+id/swGpu"
-            android:text="Use GPU (Vulkan)"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-
-        <EditText android:id="@+id/edSkip" android:hint="skip frames (0=none)"
-            android:inputType="number"
-            android:layout_width="match_parent" android:layout_height="wrap_content"/>
-
-        <TextView
-            android:id="@+id/txtStatus"
-            android:text=""
-            android:layout_marginTop="8dp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="?attr/actionBarSize"
+        android:fillViewport="true">
 
         <LinearLayout
-            android:orientation="horizontal"
-            android:layout_marginTop="12dp"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
 
-            <Button android:id="@+id/btnBack" android:text="Back"
-                android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"/>
+            <!-- 推理参数卡片 -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp">
 
-            <Button android:id="@+id/btnSave" android:text="Save"
-                android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="推理参数"
+                        android:textStyle="bold"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="建议保持默认，只有在速度/精度需要权衡时再调整"
+                        android:alpha="0.75" />
+
+                    <!-- conf -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        app:helperText="范围建议：0.10 ~ 0.60"
+                        app:hintEnabled="true">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edConf"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Conf threshold"
+                            android:inputType="numberDecimal" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- nms -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        app:helperText="范围建议：0.30 ~ 0.70"
+                        app:hintEnabled="true">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edNms"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="NMS threshold"
+                            android:inputType="numberDecimal" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- input size -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        app:helperText="通常与训练一致（例如 640）"
+                        app:hintEnabled="true">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edInput"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Input size"
+                            android:inputType="number" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- threads -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        app:helperText="建议 2~6，越大不一定越快"
+                        app:hintEnabled="true">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edThreads"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Threads"
+                            android:inputType="number" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 性能相关卡片 -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="性能"
+                        android:textStyle="bold"
+                        android:textSize="16sp" />
+
+                    <!-- GPU -->
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/swGpu"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="启用 GPU（Vulkan）"
+                        android:checked="false" />
+
+                    <!-- skip frames -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        app:helperText="跳帧数（0=不跳帧，1=每隔一帧推理一次）"
+                        app:hintEnabled="true">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edSkip"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Skip frames"
+                            android:inputType="number" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 状态提示 -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp">
+
+                <TextView
+                    android:id="@+id/txtStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="12dp"
+                    android:text=" "
+                    android:alpha="0.85" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 底部按钮 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnBack"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="返回" />
+
+                <Space
+                    android:layout_width="12dp"
+                    android:layout_height="1dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSave"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="保存" />
+            </LinearLayout>
+
         </LinearLayout>
-    </LinearLayout>
-</ScrollView>
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
