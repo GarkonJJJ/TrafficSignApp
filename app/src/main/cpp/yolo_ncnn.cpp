@@ -7,6 +7,8 @@
 
 #include "net.h"
 #include "mat.h"
+#include "custom_layers/torch_std.h"
+
 
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, "YoloNcnn", __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, "YoloNcnn", __VA_ARGS__)
@@ -98,6 +100,13 @@ bool YoloNcnn::init(AAssetManager* mgr,
 
     auto* net = new ncnn::Net();
     net_ptr_ = net;
+
+//    net->register_custom_layer("torch.std", ncnn::TorchStd_layer_creator);
+//    ncnn::Net::register_custom_layer("torch.std", ncnn::TorchStd_layer_creator);
+//    ncnn::Net::register_custom_layer("torch.std", ncnn::TorchStd_layer_creator);
+    net->register_custom_layer("torch.std", ncnn::TorchStd_layer_creator);
+
+
 
     net->opt.num_threads = num_threads_;
     net->opt.use_vulkan_compute = use_gpu_; // 需要你编译的 ncnn 支持 Vulkan

@@ -41,7 +41,6 @@ public class LiveDetectActivity extends AppCompatActivity {
 //    private NativeYolo yolo = new NativeYolo();
 
     private NativeYolo yolo;
-    private boolean nativeInited = false;
 
     private YuvToRgbaConverter yuvToRgba;
     private boolean nativeReady = false;
@@ -117,13 +116,15 @@ public class LiveDetectActivity extends AppCompatActivity {
 
     //解决点击开始后闪退的问题
     private void initNativeIfNeeded() {
-        if (nativeInited) return;
+        if (nativeReady) return;
 
         if (yolo == null) {
             yolo = new com.example.trafficsign.ncnn.NativeYolo();
         }
 
 
+//        String param = "bak/model.param";
+//        String bin   = "bak/model.bin";
         String param = "model.param";
         String bin   = "model.bin";
         String labels= "labels.txt";
@@ -133,7 +134,7 @@ public class LiveDetectActivity extends AppCompatActivity {
         int threads = 4;
         boolean useGpu = false; // 你如果有设置项就读设置
 
-        boolean ok = yolo.init(
+        boolean nativeReady = yolo.init(
                 getAssets(),
                 param,
                 bin,
@@ -145,7 +146,7 @@ public class LiveDetectActivity extends AppCompatActivity {
                 useGpu
         );
 
-        if (!ok) {
+        if (!nativeReady) {
 //            throw new RuntimeException("NativeYolo.init() failed. Check assets/model files and ABI libs.");
             // ❗不要 throw 直接崩，先提示并退出页面
             android.widget.Toast.makeText(this,
@@ -153,8 +154,6 @@ public class LiveDetectActivity extends AppCompatActivity {
                     android.widget.Toast.LENGTH_LONG).show();
             finish();
         }
-
-        nativeInited = true;
     }
 
 

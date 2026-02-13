@@ -47,7 +47,7 @@ public class ImageDetectActivity extends AppCompatActivity {
         if (nativeReady) return;
         SettingsStore s = new SettingsStore(this);
         nativeReady = yolo.init(getAssets(),
-                "model.param", "model.bin", "labels.txt",
+                "bak/model.param", "bak/model.bin", "labels.txt",
                 s.getInputSize(), s.getConfThr(), s.getNmsThr(),
                 s.getThreads(), s.isUseGpu());
     }

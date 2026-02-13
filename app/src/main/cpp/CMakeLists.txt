@@ -3,7 +3,17 @@ project("trafficsign")
 
 add_library(native-lib SHARED
         native-lib.cpp
-        yolo_ncnn.cpp)
+        yolo_ncnn.cpp
+        custom_layers/torch_std.cpp)
+
+# 让你的自定义层与 libncnn.a 的编译选项一致（ncnn 通常是 no-rtti / no-exceptions）
+target_compile_options(native-lib PRIVATE -fno-rtti -fno-exceptions)
+
+# 有些工程还需要显式关 RTTI（可选，但建议加上）
+target_compile_definitions(native-lib PRIVATE NCNN_DISABLE_RTTI=1)
+
+
+#add_library()
 
 # ncnn headers: 指向 include（不是 include/ncnn）
 target_include_directories(native-lib PRIVATE
