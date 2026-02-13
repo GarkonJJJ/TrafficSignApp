@@ -39,7 +39,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 public class LiveDetectActivity extends AppCompatActivity {
 
-    private ActivityResultLauncher<String> cameraPermLauncher;
+//    private ActivityResultLauncher<String> cameraPermLauncher;
 
     private ActivityLiveDetectBinding vb;
     private PreviewView previewView;
@@ -65,32 +65,91 @@ public class LiveDetectActivity extends AppCompatActivity {
                 else finish();
             });
 
-    @Override protected void onCreate(Bundle savedInstanceState) {
+//    @Override protected void onCreate(Bundle savedInstanceState) {
+//        super.onCreate(savedInstanceState);
+//        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+//
+//        vb = ActivityLiveDetectBinding.inflate(getLayoutInflater());
+//        setContentView(vb.getRoot());
+//
+//        ViewCompat.setOnApplyWindowInsetsListener(vb.getRoot(), (v, insets) -> {
+//            int statusTop = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
+//
+//            // 让 topBar 自己避开状态栏：用 paddingTop 增加安全区（你原来就是这么做的）
+//            vb.topBar.setPadding(
+//                    vb.topBar.getPaddingLeft(),
+//                    statusTop + dp(8),
+//                    vb.topBar.getPaddingRight(),
+//                    vb.topBar.getPaddingBottom()
+//            );
+//
+//            vb.topBar.post(() -> {
+//                ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) vb.topBar.getLayoutParams();
+//                lp.topMargin = statusTop + dp(12);
+//                vb.topBar.setLayoutParams(lp);
+//
+//                int overlayTop = statusTop + dp(12) + vb.topBar.getHeight() + dp(8);
+//                vb.overlayView.setInsetTop(overlayTop);
+//            });
+//
+//
+//            return insets;
+//        });
+//
+//
+//        previewView = vb.previewView;
+//        analysisExecutor = Executors.newSingleThreadExecutor();
+//        yuvToRgba = new YuvToRgbaConverter();
+//
+//        vb.btnBack.setOnClickListener(v -> finish());
+//        vb.btnToggle.setOnClickListener(v -> vb.overlayView.toggleDraw());
+//
+//        if (!PermissionUtils.hasCameraPermission(this)) {
+//            permLauncher.launch(new String[]{Manifest.permission.CAMERA});
+//        } else {
+//            startCamera();
+//        }
+//
+//        yolo = new NativeYolo();
+//
+//        cameraPermLauncher = registerForActivityResult(
+//                new ActivityResultContracts.RequestPermission(),
+//                granted -> {
+//                    if (granted) {
+//                        startCamera();   // 你原来的 CameraX 启动函数
+//                    } else {
+//                        Toast.makeText(this, "需要相机权限才能实时检测", Toast.LENGTH_LONG).show();
+//                    }
+//                }
+//        );
+//
+//        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+//                == PackageManager.PERMISSION_GRANTED) {
+//            startCamera();
+//        } else {
+//            cameraPermLauncher.launch(Manifest.permission.CAMERA);
+//        }
+//
+//
+//    }
+
+
+    //优化
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         vb = ActivityLiveDetectBinding.inflate(getLayoutInflater());
         setContentView(vb.getRoot());
 
+        // ✅ 状态栏/顶部条/HUD inset 处理（保留你现有的）
         ViewCompat.setOnApplyWindowInsetsListener(vb.getRoot(), (v, insets) -> {
             int statusTop = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
 
-            // 让 topBar 自己避开状态栏：用 paddingTop 增加安全区（你原来就是这么做的）
-            vb.topBar.setPadding(
-                    vb.topBar.getPaddingLeft(),
-                    statusTop + dp(8),
-                    vb.topBar.getPaddingRight(),
-                    vb.topBar.getPaddingBottom()
-            );
-
-            // ✅ 关键：HUD 要避开 “状态栏 + topBar高度”
-//            vb.topBar.post(() -> {
-//                int overlayTop = statusTop + vb.topBar.getHeight() + dp(8);
-//                vb.overlayView.setInsetTop(overlayTop);
-//            });
-
             vb.topBar.post(() -> {
-                ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) vb.topBar.getLayoutParams();
+                ViewGroup.MarginLayoutParams lp =
+                        (ViewGroup.MarginLayoutParams) vb.topBar.getLayoutParams();
                 lp.topMargin = statusTop + dp(12);
                 vb.topBar.setLayoutParams(lp);
 
@@ -98,45 +157,25 @@ public class LiveDetectActivity extends AppCompatActivity {
                 vb.overlayView.setInsetTop(overlayTop);
             });
 
-
             return insets;
         });
-
 
         previewView = vb.previewView;
         analysisExecutor = Executors.newSingleThreadExecutor();
         yuvToRgba = new YuvToRgbaConverter();
 
+        // ✅ 先创建 yolo（避免 startCamera 早于 yolo 初始化带来的混乱）
+        yolo = new NativeYolo();
+
         vb.btnBack.setOnClickListener(v -> finish());
         vb.btnToggle.setOnClickListener(v -> vb.overlayView.toggleDraw());
 
+        // ✅ 只保留这一套权限逻辑（permLauncher）
         if (!PermissionUtils.hasCameraPermission(this)) {
             permLauncher.launch(new String[]{Manifest.permission.CAMERA});
         } else {
             startCamera();
         }
-
-        yolo = new NativeYolo();
-
-        cameraPermLauncher = registerForActivityResult(
-                new ActivityResultContracts.RequestPermission(),
-                granted -> {
-                    if (granted) {
-                        startCamera();   // 你原来的 CameraX 启动函数
-                    } else {
-                        Toast.makeText(this, "需要相机权限才能实时检测", Toast.LENGTH_LONG).show();
-                    }
-                }
-        );
-
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-                == PackageManager.PERMISSION_GRANTED) {
-            startCamera();
-        } else {
-            cameraPermLauncher.launch(Manifest.permission.CAMERA);
-        }
-
-
     }
 
     //解决点击开始后闪退的问题
@@ -159,7 +198,7 @@ public class LiveDetectActivity extends AppCompatActivity {
         int threads = 4;
         boolean useGpu = false; // 你如果有设置项就读设置
 
-        boolean nativeReady = yolo.init(
+        boolean ok = yolo.init(
                 getAssets(),
                 param,
                 bin,
@@ -171,7 +210,8 @@ public class LiveDetectActivity extends AppCompatActivity {
                 useGpu
         );
 
-        if (!nativeReady) {
+        this.nativeReady = ok;
+        if (!ok) {
 //            throw new RuntimeException("NativeYolo.init() failed. Check assets/model files and ABI libs.");
             // ❗不要 throw 直接崩，先提示并退出页面
             android.widget.Toast.makeText(this,

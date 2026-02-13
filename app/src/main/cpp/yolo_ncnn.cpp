@@ -122,6 +122,8 @@ static bool try_input(ncnn::Extractor& ex, const ncnn::Mat& in,
                       const std::initializer_list<const char*>& names) {
     for (auto n : names) {
         if (ex.input(n, in) == 0) return true;
+
+
     }
     return false;
 }
@@ -129,6 +131,10 @@ static bool try_input(ncnn::Extractor& ex, const ncnn::Mat& in,
 static bool try_extract(ncnn::Extractor& ex, ncnn::Mat& out,
                         const std::initializer_list<const char*>& names) {
     for (auto n : names) {
+
+        //DEBUG
+        LOGI("hit output name=%s", n);
+
         if (ex.extract(n, out) == 0) return true;
     }
     return false;
@@ -148,7 +154,7 @@ std::vector<Detection> YoloNcnn::detect_rgba(const unsigned char* rgba,
     int new_w = (int)std::round(w * scale);
     int new_h = (int)std::round(h * scale);
 
-    ncnn::Mat in = ncnn::Mat::from_pixels(rgba, ncnn::Mat::PIXEL_RGBA, w, h);
+    ncnn::Mat in = ncnn::Mat::from_pixels(rgba, ncnn::Mat::PIXEL_RGBA2RGB, w, h);
 
     ncnn::Mat resized;
     ncnn::resize_bilinear(in, resized, new_w, new_h);
@@ -204,54 +210,109 @@ std::vector<Detection> YoloNcnn::detect_rgba(const unsigned char* rgba,
     int dim2 = pred.c;
 
     // 展平成二维：rows x cols
+//    int rows = 0, cols = 0;
+//    bool transposed = false;
+//
+//    if (dim2 == 1) {
+//        // 2D
+//        if (dim1 == 4 + nc) { rows = dim1; cols = dim0; transposed = false; }      // (4+nc) x 8400
+//        else if (dim0 == 4 + nc) { rows = dim0; cols = dim1; transposed = true; } // 8400 x (4+nc)
+//        else {
+//            LOGE("Unexpected pred shape: w=%d h=%d c=%d (nc=%d)", dim0, dim1, dim2, nc);
+//            return dets;
+//        }
+//    } else {
+//        // 3D 情况少见：当作 (c*h) x w
+//        // 这里做一个保守兜底：如果 dim0==4+nc 且 dim1*dim2==8400
+//        if (dim0 == 4 + nc && dim1 * dim2 == 8400) {
+//            rows = dim0;
+//            cols = dim1 * dim2;
+//            transposed = false;
+//        } else if (dim0 == 8400 && dim1 * dim2 == 4 + nc) {
+//            rows = 4 + nc;
+//            cols = 8400;
+//            transposed = true;
+//        } else {
+//            LOGE("Unexpected 3D pred shape: w=%d h=%d c=%d (nc=%d)", dim0, dim1, dim2, nc);
+//            return dets;
+//        }
+//    }
+
+    // 展平成二维：rows x cols
     int rows = 0, cols = 0;
     bool transposed = false;
+    int feat = 0;  // ✅ 可能是 4+nc 或 5+nc
+
+    auto match_feat = [&](int x) {
+        return (x == 4 + nc) || (x == 5 + nc);
+    };
 
     if (dim2 == 1) {
         // 2D
-        if (dim1 == 4 + nc) { rows = dim1; cols = dim0; transposed = false; }      // (4+nc) x 8400
-        else if (dim0 == 4 + nc) { rows = dim0; cols = dim1; transposed = true; } // 8400 x (4+nc)
-        else {
+        if (match_feat(dim1)) {
+            rows = dim1; cols = dim0; transposed = false; feat = dim1;   // (feat) x 8400
+        } else if (match_feat(dim0)) {
+            rows = dim0; cols = dim1; transposed = true;  feat = dim0;   // 8400 x (feat)
+        } else {
             LOGE("Unexpected pred shape: w=%d h=%d c=%d (nc=%d)", dim0, dim1, dim2, nc);
             return dets;
         }
     } else {
-        // 3D 情况少见：当作 (c*h) x w
-        // 这里做一个保守兜底：如果 dim0==4+nc 且 dim1*dim2==8400
-        if (dim0 == 4 + nc && dim1 * dim2 == 8400) {
+        // 3D 兜底：把 dim1*dim2 看成 8400
+        if (match_feat(dim0) && dim1 * dim2 == 8400) {
             rows = dim0;
             cols = dim1 * dim2;
             transposed = false;
-        } else if (dim0 == 8400 && dim1 * dim2 == 4 + nc) {
-            rows = 4 + nc;
-            cols = 8400;
-            transposed = true;
+            feat = dim0;
         } else {
             LOGE("Unexpected 3D pred shape: w=%d h=%d c=%d (nc=%d)", dim0, dim1, dim2, nc);
             return dets;
         }
     }
 
+
+//    auto get_val = [&](int r, int c)->float {
+//        // r: 0..(4+nc-1), c: 0..(8400-1)
+//        if (dim2 == 1) {
+//            if (!transposed) {
+//                // pred shape: rows(=h) x cols(=w)
+//                const float* rowptr = pred.row(r);
+//                return rowptr[c];
+//            } else {
+//                // pred shape: cols(=h) x rows(=w)
+//                // 访问 pred.row(c)[r]
+//                const float* rowptr = pred.row(c);
+//                return rowptr[r];
+//            }
+//        } else {
+//            // 3D: flatten on (h,c)
+//            // pred.channel(k) gives plane w x h? 这里不展开复杂，按连续内存处理
+//            const float* p = (const float*)pred.data;
+//            // 视为 [cols][rows] or [rows][cols] 不可靠，兜底直接当 rows x cols 连续存储
+//            // （一般不会走到这里）
+//            return p[r * cols + c];
+//        }
+//    };
+
+    //优化版
     auto get_val = [&](int r, int c)->float {
-        // r: 0..(4+nc-1), c: 0..(8400-1)
+        // 视为二维：w=pred.w, h=pred.h
+        // 若 transposed=false:  pred.h == rows(feat), pred.w == cols(8400)
+        // 若 transposed=true:   pred.h == cols(8400), pred.w == rows(feat)
         if (dim2 == 1) {
+            const float* p = (const float*)pred.data;
+            int W = pred.w;
             if (!transposed) {
-                // pred shape: rows(=h) x cols(=w)
-                const float* rowptr = pred.row(r);
-                return rowptr[c];
+                // index = r * W + c
+                return p[r * W + c];
             } else {
-                // pred shape: cols(=h) x rows(=w)
-                // 访问 pred.row(c)[r]
-                const float* rowptr = pred.row(c);
-                return rowptr[r];
+                // index = c * W + r
+                return p[c * W + r];
             }
         } else {
-            // 3D: flatten on (h,c)
-            // pred.channel(k) gives plane w x h? 这里不展开复杂，按连续内存处理
-            const float* p = (const float*)pred.data;
-            // 视为 [cols][rows] or [rows][cols] 不可靠，兜底直接当 rows x cols 连续存储
-            // （一般不会走到这里）
-            return p[r * cols + c];
+            // 3D 不在这里强行支持，先直接返回0，避免错读内存
+            //（你要是真走到3D，我再按具体 shape 给你写）
+            return 0.f;
         }
     };
 
@@ -262,6 +323,8 @@ std::vector<Detection> YoloNcnn::detect_rgba(const unsigned char* rgba,
 
     dets.reserve(128);
 
+    float global_max = 0.f;
+
     for (int i = 0; i < num_points; i++) {
         float cx = get_val(0, i);
         float cy = get_val(1, i);
@@ -269,14 +332,39 @@ std::vector<Detection> YoloNcnn::detect_rgba(const unsigned char* rgba,
         float bh = get_val(3, i);
 
         // 找最大类
-        int best = -1;
-        float best_score = 0.f;
-        for (int c = 0; c < nc; c++) {
-            float sc = get_val(4 + c, i);
-            if (sc > best_score) { best_score = sc; best = c; }
+//        int best = -1;
+//        float best_score = 0.f;
+//        for (int c = 0; c < nc; c++) {
+//            float sc = get_val(4 + c, i);
+//            if (sc > best_score) { best_score = sc; best = c; }
+//        }
+//
+//        if (best < 0 || best_score < conf_thr) continue;
+
+        // ✅ 兼容两种输出：
+        // - 4+nc: [cx cy w h cls...]
+        // - 5+nc: [cx cy w h obj cls...]
+        float obj = 1.f;
+        int cls_off = 4;
+        if (feat == 5 + nc) {
+            obj = get_val(4, i);
+            cls_off = 5;
         }
 
-        if (best < 0 || best_score < conf_thr) continue;
+        // 找最大类
+        int best = -1;
+        float best_cls = 0.f;
+        for (int c = 0; c < nc; c++) {
+            float sc = get_val(cls_off + c, i);
+            if (sc > best_cls) { best_cls = sc; best = c; }
+        }
+
+        // 最终得分：cls * obj（若无 obj，则 obj=1）
+        float score = best_cls * obj;
+        if (score > global_max) global_max = score;
+        if (best < 0 || score < conf_thr) continue;
+
+
 
         // xywh -> xyxy（在 letterbox 坐标系下）
         float x0 = cx - bw * 0.5f;
@@ -298,14 +386,24 @@ std::vector<Detection> YoloNcnn::detect_rgba(const unsigned char* rgba,
         Detection d;
         d.x0 = x0; d.y0 = y0; d.x1 = x1; d.y1 = y1;
         d.label = best;
-        d.score = best_score;
+        d.score = score;
         d.label_text = (best >= 0 && best < (int)labels_.size()) ? labels_[best] : std::to_string(best);
 
         dets.push_back(d);
+
+        static int printed = 0;
+        if (printed < 1 && score > 0.5f) {
+            LOGI("sample box raw: cx=%.3f cy=%.3f bw=%.3f bh=%.3f (target=%d new_w=%d new_h=%d padL=%d padT=%d scale=%.4f)",
+                 cx, cy, bw, bh, target, new_w, new_h, pad_left, pad_top, scale);
+            printed++;
+        }
     }
 
     // ---------- 5) NMS ----------
     nms_classwise(dets, nms_thr);
+
+    LOGI("pred w=%d h=%d c=%d nc=%d feat=%d max_score=%.4f",
+         pred.w, pred.h, pred.c, nc, feat, global_max);
 
     return dets;
 }
