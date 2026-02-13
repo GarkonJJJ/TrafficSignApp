@@ -20,6 +20,7 @@
 
         <!-- 顶部操作条：返回 + 显示/隐藏 -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/topBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="12dp"

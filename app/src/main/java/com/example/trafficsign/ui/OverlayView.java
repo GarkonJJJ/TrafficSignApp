@@ -28,6 +28,8 @@ public class OverlayView extends View {
     private float lastFps = 0f;
     private double lastInferMs = 0;
 
+    private int insetTopPx = 0;
+
     public OverlayView(Context c, @Nullable AttributeSet a) {
         super(c, a);
 
@@ -73,8 +75,13 @@ public class OverlayView extends View {
         float scaleY = viewH / srcH;
 
         // HUD
-        canvas.drawText(String.format("FPS: %.1f", lastFps), 20, 50, hudPaint);
-        canvas.drawText(String.format("Infer: %.2f ms", lastInferMs), 20, 100, hudPaint);
+//        canvas.drawText(String.format("FPS: %.1f", lastFps), 20, 50, hudPaint);
+//        canvas.drawText(String.format("Infer: %.2f ms", lastInferMs), 20, 100, hudPaint);
+
+        // HUD2.0
+        int baseY = insetTopPx + dp(8);
+        canvas.drawText(String.format("FPS: %.1f", lastFps), 20, baseY + dp(16), hudPaint);
+        canvas.drawText(String.format("Infer: %.2f ms", lastInferMs), 20, baseY + dp(44), hudPaint);
 
         for (DetectionBox b : detections) {
             RectF r = new RectF(
@@ -87,5 +94,14 @@ public class OverlayView extends View {
             canvas.drawText(String.format("%s %.2f", b.label, b.score),
                     r.left, Math.max(40, r.top - 10), textPaint);
         }
+    }
+
+    public void setInsetTop(int px) {
+        insetTopPx = Math.max(px, 0);
+        invalidate();
+    }
+
+    private int dp(int v) {
+        return (int) (v * getResources().getDisplayMetrics().density + 0.5f);
     }
 }

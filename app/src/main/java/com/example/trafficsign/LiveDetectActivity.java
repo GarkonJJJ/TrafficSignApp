@@ -3,6 +3,7 @@ package com.example.trafficsign;
 import android.Manifest;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -30,6 +31,12 @@ import java.util.concurrent.Executors;
 
 import android.content.pm.PackageManager;
 import android.widget.Toast;
+
+
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+
+
 public class LiveDetectActivity extends AppCompatActivity {
 
     private ActivityResultLauncher<String> cameraPermLauncher;
@@ -50,6 +57,8 @@ public class LiveDetectActivity extends AppCompatActivity {
     private int frameCount = 0;
 
 
+
+
     private final ActivityResultLauncher<String[]> permLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
                 if (PermissionUtils.hasCameraPermission(this)) startCamera();
@@ -62,6 +71,37 @@ public class LiveDetectActivity extends AppCompatActivity {
 
         vb = ActivityLiveDetectBinding.inflate(getLayoutInflater());
         setContentView(vb.getRoot());
+
+        ViewCompat.setOnApplyWindowInsetsListener(vb.getRoot(), (v, insets) -> {
+            int statusTop = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
+
+            // 让 topBar 自己避开状态栏：用 paddingTop 增加安全区（你原来就是这么做的）
+            vb.topBar.setPadding(
+                    vb.topBar.getPaddingLeft(),
+                    statusTop + dp(8),
+                    vb.topBar.getPaddingRight(),
+                    vb.topBar.getPaddingBottom()
+            );
+
+            // ✅ 关键：HUD 要避开 “状态栏 + topBar高度”
+//            vb.topBar.post(() -> {
+//                int overlayTop = statusTop + vb.topBar.getHeight() + dp(8);
+//                vb.overlayView.setInsetTop(overlayTop);
+//            });
+
+            vb.topBar.post(() -> {
+                ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) vb.topBar.getLayoutParams();
+                lp.topMargin = statusTop + dp(12);
+                vb.topBar.setLayoutParams(lp);
+
+                int overlayTop = statusTop + dp(12) + vb.topBar.getHeight() + dp(8);
+                vb.overlayView.setInsetTop(overlayTop);
+            });
+
+
+            return insets;
+        });
+
 
         previewView = vb.previewView;
         analysisExecutor = Executors.newSingleThreadExecutor();
@@ -98,21 +138,6 @@ public class LiveDetectActivity extends AppCompatActivity {
 
 
     }
-
-//    private void initNativeIfNeeded() {
-//        if (nativeReady) return;
-//
-//        SettingsStore s = new SettingsStore(this);
-//        nativeReady = yolo.init(
-//                getAssets(),
-//                "model.param", "model.bin", "labels.txt",
-//                s.getInputSize(),
-//                s.getConfThr(), s.getNmsThr(),
-//                s.getThreads(),
-//                s.isUseGpu()
-//        );
-//        Log.i("LiveDetect", "nativeReady=" + nativeReady);
-//    }
 
     //解决点击开始后闪退的问题
     private void initNativeIfNeeded() {
@@ -255,4 +280,8 @@ public class LiveDetectActivity extends AppCompatActivity {
         }
     }
 
+
+    private int dp(int v) {
+        return (int) (v * getResources().getDisplayMetrics().density + 0.5f);
+    }
 }
